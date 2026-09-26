@@ -1,13 +1,190 @@
-/* ╔══════════════════════════════════════════════════════╗
-   ║  AI Dairy Cooperative – Supply Chain Platform JS    ║
-   ╚══════════════════════════════════════════════════════╝ */
+﻿/* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+   â•‘  AI Dairy Cooperative â€“ Supply Chain Platform JS    â•‘
+   â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 "use strict";
 
-// ── State ────────────────────────────────────────────
+// ==================== AUTH ====================
+/* ==================== LOGIN / REGISTER ==================== */
+
+function showAuthScreen() {
+  const auth = document.getElementById("auth-screen");
+  if (auth) auth.style.display = "flex";
+
+  document.querySelector(".sidebar").style.display = "none";
+  document.querySelector(".main").style.display = "none";
+}
+
+function hideAuthScreen() {
+  const auth = document.getElementById("auth-screen");
+  if (auth) auth.style.display = "none";
+
+  document.querySelector(".sidebar").style.display = "";
+  document.querySelector(".main").style.display = "";
+}
+
+function showAuthError(message) {
+  const box = document.getElementById("auth-error");
+  if (box) {
+    box.textContent = message;
+    box.style.display = "block";
+  }
+}
+
+function clearAuthError() {
+  const box = document.getElementById("auth-error");
+  if (box) box.style.display = "none";
+}
+
+async function loginUser(email, password) {
+  clearAuthError();
+
+  const response = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ email, password })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || "Login failed");
+  }
+
+  localStorage.setItem("dairyscm_token", data.token);
+  localStorage.setItem("dairyscm_user", JSON.stringify(data.user));
+
+  return data;
+}
+
+async function registerUser(data) {
+  clearAuthError();
+
+  const response = await fetch("/api/auth/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || result.message || "Registration failed");
+  }
+
+  localStorage.setItem("dairyscm_token", result.token);
+  localStorage.setItem("dairyscm_user", JSON.stringify(result.user));
+
+  return result;
+}
+
+function setupAuth() {
+  const loginForm = document.getElementById("login-form");
+  const registerForm = document.getElementById("register-form");
+  const showRegister = document.getElementById("show-register");
+  const showLogin = document.getElementById("show-login");
+
+  if (!loginForm || !registerForm) return;
+
+  showRegister?.addEventListener("click", (e) => {
+    e.preventDefault();
+    clearAuthError();
+    loginForm.style.display = "none";
+    registerForm.style.display = "block";
+  });
+
+  showLogin?.addEventListener("click", (e) => {
+    e.preventDefault();
+    clearAuthError();
+    registerForm.style.display = "none";
+    loginForm.style.display = "block";
+  });
+
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+
+    try {
+      await loginUser(email, password);
+      hideAuthScreen();
+      setupNav();
+      loadPage("dashboard");
+    } catch (err) {
+      showAuthError(err.message);
+    }
+  });
+
+  registerForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const password = document.getElementById("reg-password").value;
+    const confirmPassword = document.getElementById("reg-confirm").value;
+
+    if (password !== confirmPassword) {
+      showAuthError("Passwords do not match.");
+      return;
+    }
+
+    try {
+      await registerUser({
+        name: document.getElementById("reg-name").value.trim(),
+        email: document.getElementById("reg-email").value.trim(),
+        password: password,
+        confirm_password: confirmPassword,
+        organization_name: document.getElementById("reg-org").value.trim(),
+        location: document.getElementById("reg-location").value.trim()
+      });
+
+      hideAuthScreen();
+      setupNav();
+      loadPage("dashboard");
+    } catch (err) {
+      showAuthError(err.message);
+    }
+  });
+}
+
+function initializeAuthentication() {
+  setupAuth();
+
+  const token = getAuthToken();
+
+  if (token) {
+    hideAuthScreen();
+    setupNav();
+    loadPage("dashboard");
+  } else {
+    showAuthScreen();
+  }
+}
+
+function getAuthToken() {
+  return localStorage.getItem("dairyscm_token");
+}
+
+function authHeaders() {
+  const token = getAuthToken();
+  return token
+    ? { "Authorization": "Bearer " + token }
+    : {};
+}
+
+function logoutUser() {
+  localStorage.removeItem("dairyscm_token");
+  localStorage.removeItem("dairyscm_user");
+  window.location.reload();
+}
+
+// â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let charts = {};
 
-// ── Boot ─────────────────────────────────────────────
+// â”€â”€ Boot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 document.addEventListener("DOMContentLoaded", () => {
   updateClock();
   setInterval(updateClock, 1000);
@@ -35,7 +212,7 @@ function setupNav() {
 function loadPage(page) {
   destroyAllCharts();
   const content = document.getElementById("content");
-  content.innerHTML = `<div class="loading">Loading ${page}…</div>`;
+  content.innerHTML = `<div class="loading">Loading ${page}â€¦</div>`;
 
   const routes = {
     dashboard:    "/api/dashboard",
@@ -51,7 +228,7 @@ function loadPage(page) {
     balance:      "/api/ai/supply-demand-balance",
   };
 
-  fetch(routes[page])
+  fetch(routes[page], { headers: authHeaders() })
     .then(r => r.json())
     .then(data => {
       const renderers = {
@@ -79,7 +256,7 @@ function destroyAllCharts() {
   charts = {};
 }
 
-// ── Helpers ──────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function fmtNum(n) { return Number(n).toLocaleString("en-IN"); }
 function fmtK(n)   { return n >= 1000 ? (n/1000).toFixed(1)+"K" : n; }
 
@@ -99,9 +276,9 @@ function progressBar(pct, label="") {
 }
 
 function trendBadge(t) {
-  if (t === "Increasing") return `<span class="trend-up">↑ ${t}</span>`;
-  if (t === "Declining")  return `<span class="trend-down">↓ ${t}</span>`;
-  return `<span class="trend-flat">→ ${t}</span>`;
+  if (t === "Increasing") return `<span class="trend-up">â†‘ ${t}</span>`;
+  if (t === "Declining")  return `<span class="trend-down">â†“ ${t}</span>`;
+  return `<span class="trend-flat">â†’ ${t}</span>`;
 }
 
 function makeLineChart(id, labels, datasets, title="") {
@@ -163,55 +340,55 @@ function makeBarChart(id, labels, datasets) {
   });
 }
 
-// ── Page Renderers ───────────────────────────────────
+// â”€â”€ Page Renderers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // DASHBOARD
 function renderDashboard(d, el) {
   const k = d.kpis;
   el.innerHTML = `
     <div class="kpi-grid">
-      ${kpiCard("👨‍🌾","Total Farmers",    k.total_farmers,     "Active cooperative members")}
-      ${kpiCard("🥛","Daily Production", fmtNum(k.daily_production_liters)+" L","Today's milk collected")}
-      ${kpiCard("🏭","Collection Cntrs",  k.collection_centers, `Avg storage ${k.storage_utilization_pct}%`)}
-      ${kpiCard("⚙️","Processing Plants", k.processing_plants,  `Avg util ${k.avg_plant_utilization_pct}%`)}
-      ${kpiCard("🛒","Retail Partners",   k.total_retailers,   "Across 8 cities")}
-      ${kpiCard("📦","Monthly Demand",    fmtK(k.monthly_demand_liters)+" L","Aggregate retail demand")}
-      ${kpiCard("⭐","Avg Milk Quality",  k.avg_quality_score+"%","FAO Grade A standard")}
-      ${kpiCard("🚚","On-Time Delivery",  k.on_time_delivery_pct+"%","Last 30 days")}
-      ${kpiCard("🚨","Active AI Alerts",  d.alerts_count,      "Requires attention")}
+      ${kpiCard("ðŸ‘¨â€ðŸŒ¾","Total Farmers",    k.total_farmers,     "Active cooperative members")}
+      ${kpiCard("ðŸ¥›","Daily Production", fmtNum(k.daily_production_liters)+" L","Today's milk collected")}
+      ${kpiCard("ðŸ­","Collection Cntrs",  k.collection_centers, `Avg storage ${k.storage_utilization_pct}%`)}
+      ${kpiCard("âš™ï¸","Processing Plants", k.processing_plants,  `Avg util ${k.avg_plant_utilization_pct}%`)}
+      ${kpiCard("ðŸ›’","Retail Partners",   k.total_retailers,   "Across 8 cities")}
+      ${kpiCard("ðŸ“¦","Monthly Demand",    fmtK(k.monthly_demand_liters)+" L","Aggregate retail demand")}
+      ${kpiCard("â­","Avg Milk Quality",  k.avg_quality_score+"%","FAO Grade A standard")}
+      ${kpiCard("ðŸšš","On-Time Delivery",  k.on_time_delivery_pct+"%","Last 30 days")}
+      ${kpiCard("ðŸš¨","Active AI Alerts",  d.alerts_count,      "Requires attention")}
     </div>
 
     <div class="chart-grid">
       <div class="chart-card">
-        <div class="section-title">📈 30-Day Milk Production Trend (Litres)</div>
+        <div class="section-title">ðŸ“ˆ 30-Day Milk Production Trend (Litres)</div>
         <canvas id="chartProd"></canvas>
       </div>
       <div class="chart-card">
-        <div class="section-title">🎯 Quality Score Distribution</div>
+        <div class="section-title">ðŸŽ¯ Quality Score Distribution</div>
         <canvas id="chartQual"></canvas>
       </div>
     </div>
 
     <div class="table-card">
-      <div class="table-card-header">🔗 Supply Chain Stage Overview</div>
+      <div class="table-card-header">ðŸ”— Supply Chain Stage Overview</div>
       <table>
         <thead><tr>
           <th>Stage</th><th>Count</th><th>Key Metric</th><th>AI Status</th>
         </tr></thead>
         <tbody>
-          <tr><td>🌾 Farm Collection</td><td>${k.total_farmers} farmers</td>
+          <tr><td>ðŸŒ¾ Farm Collection</td><td>${k.total_farmers} farmers</td>
               <td>${fmtNum(k.daily_production_liters)} L/day</td>
               <td><span class="badge badge-green">Monitored</span></td></tr>
-          <tr><td>🏭 Collection Centers</td><td>${k.collection_centers} centers</td>
+          <tr><td>ðŸ­ Collection Centers</td><td>${k.collection_centers} centers</td>
               <td>${k.storage_utilization_pct}% utilization</td>
               <td><span class="badge badge-green">IoT Active</span></td></tr>
-          <tr><td>⚙️ Processing Plants</td><td>${k.processing_plants} plants</td>
+          <tr><td>âš™ï¸ Processing Plants</td><td>${k.processing_plants} plants</td>
               <td>${k.avg_plant_utilization_pct}% avg capacity</td>
               <td><span class="badge badge-blue">Optimizing</span></td></tr>
-          <tr><td>🚚 Distribution</td><td>4 distributors</td>
+          <tr><td>ðŸšš Distribution</td><td>4 distributors</td>
               <td>${k.on_time_delivery_pct}% on-time</td>
               <td><span class="badge badge-green">Route AI On</span></td></tr>
-          <tr><td>🛒 Retail</td><td>${k.total_retailers} retailers</td>
+          <tr><td>ðŸ›’ Retail</td><td>${k.total_retailers} retailers</td>
               <td>${fmtK(k.monthly_demand_liters)} L/mo demand</td>
               <td><span class="badge badge-blue">Forecasting</span></td></tr>
         </tbody>
@@ -239,17 +416,17 @@ function renderFarmers(d, el) {
           ${f.quality_score}
         </span>
       </td>
-      <td>${f.lat.toFixed(3)}°N, ${f.lng.toFixed(3)}°E</td>
+      <td>${f.lat.toFixed(3)}Â°N, ${f.lng.toFixed(3)}Â°E</td>
     </tr>`).join("");
 
   el.innerHTML = `
     <div class="kpi-grid" style="margin-bottom:20px;">
-      ${kpiCard("👨‍🌾","Total Farmers", d.total,"Active members")}
-      ${kpiCard("🐄","Total Cows", fmtNum(d.farmers.reduce((s,f)=>s+f.cows,0)),"Productive livestock")}
-      ${kpiCard("🥛","Total Daily Yield", fmtNum(d.farmers.reduce((s,f)=>s+f.daily_yield_liters,0))+" L","Combined production")}
+      ${kpiCard("ðŸ‘¨â€ðŸŒ¾","Total Farmers", d.total,"Active members")}
+      ${kpiCard("ðŸ„","Total Cows", fmtNum(d.farmers.reduce((s,f)=>s+f.cows,0)),"Productive livestock")}
+      ${kpiCard("ðŸ¥›","Total Daily Yield", fmtNum(d.farmers.reduce((s,f)=>s+f.daily_yield_liters,0))+" L","Combined production")}
     </div>
     <div class="table-card">
-      <div class="table-card-header">👨‍🌾 Registered Farmers</div>
+      <div class="table-card-header">ðŸ‘¨â€ðŸŒ¾ Registered Farmers</div>
       <table>
         <thead><tr>
           <th>ID</th><th>Name</th><th>Village</th><th>Cows</th>
@@ -270,14 +447,14 @@ function renderCollection(d, el) {
       <td>${fmtNum(c.capacity_liters)} L</td>
       <td>${fmtNum(c.current_stock)} L</td>
       <td>${progressBar(c.utilization_pct)}</td>
-      <td>${c.temp_celsius}°C</td>
+      <td>${c.temp_celsius}Â°C</td>
       <td><span class="badge ${c.status==="Critical"?"badge-red":c.status==="Warning"?"badge-orange":"badge-green"}">
         ${c.status}</span></td>
     </tr>`).join("");
 
   el.innerHTML = `
     <div class="table-card">
-      <div class="table-card-header">🏭 Collection Center Status</div>
+      <div class="table-card-header">ðŸ­ Collection Center Status</div>
       <table>
         <thead><tr>
           <th>ID</th><th>Name</th><th>Location</th><th>Capacity</th>
@@ -302,7 +479,7 @@ function renderProcessing(d, el) {
 
   el.innerHTML = `
     <div class="table-card">
-      <div class="table-card-header">⚙️ Processing Plants</div>
+      <div class="table-card-header">âš™ï¸ Processing Plants</div>
       <table>
         <thead><tr>
           <th>ID</th><th>Plant Name</th><th>Location</th>
@@ -328,7 +505,7 @@ function renderDistributors(d, el) {
 
   el.innerHTML = `
     <div class="table-card">
-      <div class="table-card-header">🚚 Distribution Network</div>
+      <div class="table-card-header">ðŸšš Distribution Network</div>
       <table>
         <thead><tr>
           <th>ID</th><th>Name</th><th>Region</th>
@@ -354,7 +531,7 @@ function renderRetailers(d, el) {
 
   el.innerHTML = `
     <div class="table-card">
-      <div class="table-card-header">🛒 Retail Partners</div>
+      <div class="table-card-header">ðŸ›’ Retail Partners</div>
       <table>
         <thead><tr>
           <th>ID</th><th>Name</th><th>Type</th><th>City</th>
@@ -373,12 +550,12 @@ function renderForecast(d, el) {
       <div class="insight-header">
         <div>
           <div class="insight-name">${f.retailer}</div>
-          <div class="insight-detail">📍 ${f.city}</div>
+          <div class="insight-detail">ðŸ“ ${f.city}</div>
         </div>
         <span class="badge badge-blue">${f.confidence_pct}% conf.</span>
       </div>
       <div class="insight-tip">
-        7-day forecast: ${f.predicted_liters.map((v,i)=>`<strong>${v.toLocaleString()}L</strong>`).join(" · ")}
+        7-day forecast: ${f.predicted_liters.map((v,i)=>`<strong>${v.toLocaleString()}L</strong>`).join(" Â· ")}
       </div>
     </div>`).join("");
 
@@ -388,7 +565,7 @@ function renderForecast(d, el) {
       <span class="badge badge-green" style="margin-left:8px;">Accuracy: ${d.accuracy}</span>
     </div>
     <div class="chart-card" style="margin-bottom:20px;">
-      <div class="section-title">🔮 7-Day Demand Forecast — Top 4 Retailers</div>
+      <div class="section-title">ðŸ”® 7-Day Demand Forecast â€” Top 4 Retailers</div>
       <canvas id="chartForecast"></canvas>
     </div>
     <div class="insight-grid">${cards}</div>`;
@@ -414,9 +591,9 @@ function renderRoutes(d, el) {
 
   const recs = d.optimizations.map(o => `
     <div class="alert-card alert-low">
-      <div class="alert-icon">🗺️</div>
+      <div class="alert-icon">ðŸ—ºï¸</div>
       <div>
-        <div class="alert-title">${o.distributor} — ${o.region}</div>
+        <div class="alert-title">${o.distributor} â€” ${o.region}</div>
         <div class="alert-msg">${o.recommendation}</div>
       </div>
     </div>`).join("");
@@ -426,7 +603,7 @@ function renderRoutes(d, el) {
       <span class="badge badge-blue">Algorithm: ${d.algorithm}</span>
     </div>
     <div class="chart-card" style="margin-bottom:20px;">
-      <div class="section-title">📉 Distance Reduction by Distributor</div>
+      <div class="section-title">ðŸ“‰ Distance Reduction by Distributor</div>
       <canvas id="chartRoutes"></canvas>
     </div>
     <div class="table-card" style="margin-bottom:20px;">
@@ -439,7 +616,7 @@ function renderRoutes(d, el) {
         <tbody>${rows}</tbody>
       </table>
     </div>
-    <div class="section-title">💡 AI Recommendations</div>
+    <div class="section-title">ðŸ’¡ AI Recommendations</div>
     ${recs}`;
 
   setTimeout(() => {
@@ -455,7 +632,7 @@ function renderRoutes(d, el) {
 // QUALITY ALERTS
 function renderAlerts(d, el) {
   if (!d.alerts.length) {
-    el.innerHTML = `<div class="alert-card alert-low"><div class="alert-icon">✅</div>
+    el.innerHTML = `<div class="alert-card alert-low"><div class="alert-icon">âœ…</div>
       <div><div class="alert-title">All Clear</div>
       <div class="alert-msg">No quality alerts at this time. All systems nominal.</div></div></div>`;
     return;
@@ -463,13 +640,13 @@ function renderAlerts(d, el) {
 
   const cards = d.alerts.map(a => `
     <div class="alert-card alert-${a.severity.toLowerCase()}">
-      <div class="alert-icon">${a.severity==="High"?"🔴":"🟡"}</div>
+      <div class="alert-icon">${a.severity==="High"?"ðŸ”´":"ðŸŸ¡"}</div>
       <div>
-        <div class="alert-title">${a.center} — ${a.alert_type}
+        <div class="alert-title">${a.center} â€” ${a.alert_type}
           <span class="badge ${a.severity==="High"?"badge-red":"badge-orange"}" style="margin-left:8px;">${a.severity}</span>
         </div>
         <div class="alert-msg">${a.message}</div>
-        <div class="alert-action">→ ${a.action}</div>
+        <div class="alert-action">â†’ ${a.action}</div>
       </div>
     </div>`).join("");
 
@@ -488,12 +665,12 @@ function renderInsights(d, el) {
       <div class="insight-header">
         <div>
           <div class="insight-name">${f.name} <span style="font-weight:400;color:#57606a;">(${f.farmer_id})</span></div>
-          <div class="insight-detail">📍 ${f.village} · 🐄 Quality: ${f.quality_score}</div>
+          <div class="insight-detail">ðŸ“ ${f.village} Â· ðŸ„ Quality: ${f.quality_score}</div>
         </div>
         ${trendBadge(f.trend)}
       </div>
       <div class="insight-detail">Daily yield: <strong>${fmtNum(f.daily_yield)} L</strong></div>
-      <div class="insight-tip">💡 ${f.suggestion}</div>
+      <div class="insight-tip">ðŸ’¡ ${f.suggestion}</div>
     </div>`).join("");
 
   const trend_counts = {
@@ -507,15 +684,15 @@ function renderInsights(d, el) {
       <span class="badge badge-blue">Model: ${d.model}</span>
     </div>
     <div class="kpi-grid" style="margin-bottom:20px;">
-      ${kpiCard("↑","Increasing Yield", trend_counts.Increasing,"Farmers")}
-      ${kpiCard("→","Stable Yield",     trend_counts.Stable,"Farmers")}
-      ${kpiCard("↓","Declining Yield",  trend_counts.Declining,"Farmers — needs attention")}
+      ${kpiCard("â†‘","Increasing Yield", trend_counts.Increasing,"Farmers")}
+      ${kpiCard("â†’","Stable Yield",     trend_counts.Stable,"Farmers")}
+      ${kpiCard("â†“","Declining Yield",  trend_counts.Declining,"Farmers â€” needs attention")}
     </div>
     <div class="chart-card" style="margin-bottom:20px;">
-      <div class="section-title">📊 Quality Score per Farmer</div>
+      <div class="section-title">ðŸ“Š Quality Score per Farmer</div>
       <canvas id="chartInsights"></canvas>
     </div>
-    <div class="section-title" style="margin-bottom:12px;">💡 Individual AI Recommendations</div>
+    <div class="section-title" style="margin-bottom:12px;">ðŸ’¡ Individual AI Recommendations</div>
     <div class="insight-grid">${cards}</div>`;
 
   setTimeout(() => {
@@ -546,12 +723,12 @@ function renderBalance(d, el) {
       </div>
     </div>
     <div class="rec-box">
-      <strong>${isPlus?"✅ Surplus":"⚠️ Deficit"}:</strong>
-      ${Math.abs(d.surplus_deficit_liters).toLocaleString()} L —
+      <strong>${isPlus?"âœ… Surplus":"âš ï¸ Deficit"}:</strong>
+      ${Math.abs(d.surplus_deficit_liters).toLocaleString()} L â€”
       ${d.recommendation}
     </div>
     <div class="chart-card" style="margin-bottom:20px;">
-      <div class="section-title">🗺️ Regional Supply vs. Demand (Litres / month)</div>
+      <div class="section-title">ðŸ—ºï¸ Regional Supply vs. Demand (Litres / month)</div>
       <canvas id="chartBalance"></canvas>
     </div>`;
 
@@ -562,3 +739,6 @@ function renderBalance(d, el) {
     ]);
   }, 50);
 }
+
+
+
