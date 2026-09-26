@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Dairy Cooperative – Supply Chain Platform</title>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ── SIDEBAR ─────────────────────────────────────── -->
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <span class="brand-icon">🐄</span>
+    <div>
+      <div class="brand-title">DairySCM</div>
+      <div class="brand-sub">AI Supply Chain Platform</div>
+    </div>
+  </div>
+  <ul class="sidebar-nav">
+    <li class="nav-item active" data-page="dashboard">
+      <span class="nav-icon">📊</span> Dashboard
+    </li>
+    <li class="nav-item" data-page="farmers">
+      <span class="nav-icon">👨‍🌾</span> Farmers
+    </li>
+    <li class="nav-item" data-page="collection">
+      <span class="nav-icon">🏭</span> Collection Centers
+    </li>
+    <li class="nav-item" data-page="processing">
+      <span class="nav-icon">⚙️</span> Processing Plants
+    </li>
+    <li class="nav-item" data-page="distributors">
+      <span class="nav-icon">🚚</span> Distributors
+    </li>
+    <li class="nav-item" data-page="retailers">
+      <span class="nav-icon">🛒</span> Retailers
+    </li>
+    <li class="nav-divider">AI Insights</li>
+    <li class="nav-item" data-page="forecast">
+      <span class="nav-icon">🔮</span> Demand Forecast
+    </li>
+    <li class="nav-item" data-page="routes">
+      <span class="nav-icon">🗺️</span> Route Optimization
+    </li>
+    <li class="nav-item" data-page="alerts">
+      <span class="nav-icon">🚨</span> Quality Alerts
+    </li>
+    <li class="nav-item" data-page="insights">
+      <span class="nav-icon">💡</span> Production Insights
+    </li>
+    <li class="nav-item" data-page="balance">
+      <span class="nav-icon">⚖️</span> Supply-Demand Balance
+    </li>
+  </ul>
+  <div class="sidebar-footer">IBM Watson AI Powered</div>
+</nav>
+
+<!-- ── MAIN ──────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- HEADER -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1 class="page-title" id="page-title">Dashboard</h1>
+    </div>
+    <div class="topbar-right">
+      <span class="badge badge-green" id="ai-status">● AI Models Active</span>
+      <span class="topbar-time" id="topbar-time"></span>
+    </div>
+  </header>
+
+  <!-- PAGE CONTENT -->
+  <div class="content" id="content">
+    <div class="loading">Loading…</div>
+  </div>
+
+</main>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
